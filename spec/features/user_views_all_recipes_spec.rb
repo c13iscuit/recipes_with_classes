@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'pg'
 
 feature "User views recipes index page" do
   scenario "user sees all the recipes" do
