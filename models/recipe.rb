@@ -16,15 +16,35 @@ class Recipe
 
   def self.find(num)
     connection = PG.connect(dbname: 'recipes')
-    results = connection.exec_params('SELECT id, name, instructions, description FROM recipes WHERE id = $1', [num])
+    results = connection.exec_params(
+      'SELECT recipes.id, recipes.name, recipes.instructions, recipes.description
+       FROM recipes WHERE recipes.id = $1', [num])
     connection.close
-    the_recipe = Recipe.new(results[0]["id"], results[0]["name"], results[0]["instructions"], results[0]["description"])
+    if results[0]["description"] != nil && results[0]["instructions"] != nil
+      the_recipe = Recipe.new(results[0]["id"], results[0]["name"], results[0]["instructions"], results[0]["description"])
+    elsif results[0]["description"] == nil && results[0]["instructions"] != nil
+      the_recipe = Recipe.new(results[0]["id"], results[0]["name"], results[0]["instructions"], "This recipe doesn't have a description.")
+    elsif results[0]["description"] != nil && results[0]["instructions"] == nil
+      the_recipe = Recipe.new(results[0]["id"], results[0]["name"], "This recipe doesn't have any instructions.", results[0]["description"])
+    else
+      the_recipe = Recipe.new(results[0]["id"], results[0]["name"], "This recipe doesn't have any instructions.", "This recipe doesn't have a description.")
+    end
     the_recipe
   end
 
   def ingredients
+    @ingredients = []
+    connection = PG.connect(dbname: 'recipes')
+    results = connection.exec_params(
+      'SELECT ingredients.name FROM recipes JOIN ingredients ON recipes.id = ingredients.recipe_id
+       WHERE recipes.id = $1', [self.id])
+    connection.close
+    ingredients_list = results.to_a
+      ingredients_list.each do |ingredient_hash|
+        @ingredients << Ingredient.new(ingredient_hash["name"])
+      end
+    @ingredients
   end
-
 end
 
 def get_recipes
@@ -38,5 +58,4 @@ def get_recipes
     @recipes << a_rec
   end
 end
-
 
